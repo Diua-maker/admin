@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Manuella Fashion Store</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#ff0000',
+                        secondary: '#0000ff',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #ff0000;
+            border-radius: 50%;
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .image-preview {
+            max-width: 300px;
+            max-height: 300px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100">
+    <!-- Dark Mode Detection -->
+    <script>
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+    </script>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Login Page -->
+        <div id="login-page" class="max-w-md mx-auto">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                <div class="text-center mb-6">
+                    <h1 class="text-3xl font-bold text-primary">Admin</h1>
+                    <h2 class="text-xl text-gray-600 dark:text-gray-400">Manuella Fashion Store</h2>
+                </div>
+
+                <form id="login-form">
+                    <div class="mb-4">
+                        <label for="admin-name" class="block text-sm font-medium mb-2">Nome do Administrador</label>
+                        <input type="text" id="admin-name" required 
+                            class="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg 
+                            bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary text-base">
+                    </div>
+
+                    <div class="mb-6">
+                        <label for="admin-key" class="block text-sm font-medium mb-2">Chave de Acesso (5 caracteres)</label>
+                        <input type="password" id="admin-key" required maxlength="5" 
+                            class="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg 
+                            bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary text-base">
+                    </div>
+
+                    <button type="submit" id="login-btn" 
+                        class="w-full bg-primary text-white py-3 rounded-lg hover:bg-secondary transition">
+                        <span id="login-text">Entrar</span>
+                        <div id="login-loading" class="loading hidden"></div>
+                    </button>
+                </form>
+
+                <div id="login-error" class="mt-4 p-3 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hidden">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    <span id="login-error-text"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Dashboard -->
+        <div id="admin-dashboard" class="hidden">
+            <!-- Header -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1 class="text-3xl font-bold text-primary">Dashboard Admin</h1>
+                        <p class="text-gray-600 dark:text-gray-400">Bem-vindo, <span id="admin-welcome"></span></p>
+                    </div>
+                    <button id="logout-btn" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition">
+                        <i class="fas fa-sign-out-alt mr-2"></i>Sair
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Add Product Form -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                    <h2 class="text-2xl font-bold mb-6 text-primary">
+                        <i class="fas fa-plus-circle mr-2"></i>Adicionar Produto
+                    </h2>
+
+                    <form id="product-form">
+                        <div class="mb-4">
+                            <label for="product-name" class="block text-sm font-medium mb-2">Nome do Produto</label>
+                            <input type="text" id="product-name" required 
+                                class="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg 
+                                bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary text-base">
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="product-description" class="block text-sm font-medium mb-2">Descrição</label>
+                            <textarea id="product-description" required rows="3"
+                                class="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg 
+                                bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary text-base"></textarea>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label for="product-price" class="block text-sm font-medium mb-2">Preço (MZN)</label>
+                                <input type="number" id="product-price" required min="0" step="0.01"
+                                    class="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg 
+                                    bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary text-base">
+                            </div>
+
+                            <div>
+                                <label for="product-category" class="block text-sm font-medium mb-2">Categoria</label>
+                                <select id="product-category" required
+                                    class="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg 
+                                    bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary text-base">
+                                    <option value="">Selecionar categoria</option>
+                                    <option value="roupas-femininas">Roupas Femininas</option>
+                                    <option value="roupas-masculinas">Roupas Masculinas</option>
+                                    <option value="calcados">Calçados</option>
+                                    <option value="acessorios">Acessórios</option>
+                                    <option value="bolsas">Bolsas</option>
+                                    <option value="joias">Joias</option>
+                                    <option value="infantil">Infantil</option>
+                                    <option value="outros">Outros</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="product-image" class="block text-sm font-medium mb-2">Imagem do Produto</label>
+                            <input type="file" id="product-image" accept="image/*" required
+                                class="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg 
+                                bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary text-base">
+                            <p class="text-sm text-gray-500 mt-1">Formatos aceitos: JPG, PNG, WebP (máx. 2MB)</p>
+                        </div>
+
+                        <div id="image-preview-container" class="mb-4 hidden">
+                            <img id="image-preview" class="image-preview mx-auto" alt="Preview">
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="flex items-center">
+                                <input type="checkbox" id="product-popular" 
+                                    class="mr-2 text-primary focus:ring-primary border-gray-300 rounded">
+                                <span>Marcar como produto popular</span>
+                            </label>
+                        </div>
+
+                        <button type="submit" id="submit-btn" 
+                            class="w-full bg-primary text-white py-3 rounded-lg hover:bg-secondary transition">
+                            <span id="submit-text">
+                                <i class="fas fa-plus mr-2"></i>Adicionar Produto
+                            </span>
+                            <div id="submit-loading" class="loading hidden"></div>
+                        </button>
+                    </form>
+
+                    <div id="form-success" class="mt-4 p-3 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded hidden">
+                        <i class="fas fa-check-circle mr-2"></i>
+                        <span id="success-text"></span>
+                    </div>
+
+                    <div id="form-error" class="mt-4 p-3 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hidden">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        <span id="error-text"></span>
+                    </div>
+                </div>
+
+                <!-- Products List -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-primary">
+                            <i class="fas fa-list mr-2"></i>Produtos Cadastrados
+                        </h2>
+                        <button id="refresh-products" class="bg-secondary text-white px-4 py-2 rounded hover:bg-primary transition">
+                            <i class="fas fa-sync mr-2"></i>Atualizar
+                        </button>
+                    </div>
+
+                    <div id="products-loading" class="text-center py-8">
+                        <div class="loading mx-auto mb-2"></div>
+                        <p>Carregando produtos...</p>
+                    </div>
+
+                    <div id="products-list" class="space-y-4 hidden">
+                        <!-- Products will be loaded here -->
+                    </div>
+
+                    <div id="no-products" class="text-center py-8 hidden">
+                        <i class="fas fa-box-open text-4xl text-gray-300 dark:text-gray-600 mb-4"></i>
+                        <p class="text-gray-500 dark:text-gray-400">Nenhum produto cadastrado</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Supabase Configuration
+        const SUPABASE_URL = 'https://fsjywjunumxmhhupqnvg.supabase.co'
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZzanl3anVudW14bWhodXBxbnZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg3MTgyODcsImV4cCI6MjA2NDI5NDI4N30.VYVyMGR77KZ0R8g5xOoF6mdJ8UiAXuNg_nkgPJp2P-k'
+        
+        // Initialize Supabase
+        const { createClient } = supabase
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+        // Admin credentials (mesmos do site principal)
+        const adminCredentials = {
+            nome: "manuella",
+            chave: "mf123"
+        };
+
+        let currentAdmin = null;
+        let products = [];
+
+        // DOM Elements
+        const loginPage = document.getElementById('login-page');
+        const adminDashboard = document.getElementById('admin-dashboard');
+        const loginForm = document.getElementById('login-form');
+        const productForm = document.getElementById('product-form');
+
+        // Login functionality
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('admin-name').value.trim();
+            const key = document.getElementById('admin-key').value.trim();
+            
+            showLoginLoading(true);
+            hideLoginError();
+            
+            // Validate credentials
+            if (name === adminCredentials.nome && key === adminCredentials.chave) {
+                currentAdmin = name;
+                document.getElementById('admin-welcome').textContent = name;
+                
+                // Show dashboard
+                loginPage.classList.add('hidden');
+                adminDashboard.classList.remove('hidden');
+                
+                // Load products
+                loadProducts();
+            } else {
+                showLoginError('Nome ou chave incorretos. Tente novamente.');
+            }
+            
+            showLoginLoading(false);
+        });
+
+        // Logout functionality
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            currentAdmin = null;
+            loginForm.reset();
+            hideLoginError();
+            
+            // Show login page
+            adminDashboard.classList.add('hidden');
+            loginPage.classList.remove('hidden');
+        });
+
+        // Product form functionality
+        productForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!currentAdmin) return;
+            
+            showSubmitLoading(true);
+            hideMessages();
+            
+            try {
+                const name = document.getElementById('product-name').value.trim();
+                const description = document.getElementById('product-description').value.trim();
+                const price = parseFloat(document.getElementById('product-price').value);
+                const category = document.getElementById('product-category').value;
+                const popular = document.getElementById('product-popular').checked;
+                const imageFile = document.getElementById('product-image').files[0];
+                
+                if (!imageFile) {
+                    throw new Error('Selecione uma imagem para o produto');
+                }
+                
+                // Validate file size (2MB max)
+                if (imageFile.size > 2 * 1024 * 1024) {
+                    throw new Error('A imagem deve ter no máximo 2MB');
+                }
+                
+                // Upload image to Supabase Storage
+                const fileExt = imageFile.name.split('.').pop();
+                const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+                
+                const { data: uploadData, error: uploadError } = await supabaseClient.storage
+                    .from('product-images')
+                    .upload(fileName, imageFile);
+                
+                if (uploadError) throw uploadError;
+                
+                // Get public URL for the uploaded image
+                const { data: urlData } = supabaseClient.storage
+                    .from('product-images')
+                    .getPublicUrl(fileName);
+                
+                const imageUrl = urlData.publicUrl;
+                
+                // Insert product into database
+                const { data, error } = await supabaseClient
+                    .from('products')
+                    .insert([{
+                        name,
+                        description,
+                        price,
+                        category,
+                        popular,
+                        image: imageUrl,
+                        active: true,
+                        created_at: new Date().toISOString(),
+                        created_by: currentAdmin
+                    }]);
+                
+                if (error) throw error;
+                
+                showSuccess('Produto adicionado com sucesso!');
+                productForm.reset();
+                hideImagePreview();
+                loadProducts();
+                
+            } catch (error) {
+                console.error('Erro ao adicionar produto:', error);
+                showError(error.message || 'Erro ao adicionar produto. Tente novamente.');
+            }
+            
+            showSubmitLoading(false);
+        });
+
+        // Image preview functionality
+        document.getElementById('product-image').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('image-preview').src = e.target.result;
+                    document.getElementById('image-preview-container').classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            } else {
+                hideImagePreview();
+            }
+        });
+
+        // Load products
+        async function loadProducts() {
+            showProductsLoading(true);
+            
+            try {
+                const { data, error } = await supabaseClient
+                    .from('products')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                
+                products = data || [];
+                renderProducts();
+                
+            } catch (error) {
+                console.error('Erro ao carregar produtos:', error);
+                showError('Erro ao carregar produtos');
+            }
+            
+            showProductsLoading(false);
+        }
+
+        // Render products
+        function renderProducts() {
+            const container = document.getElementById('products-list');
+            const noProducts = document.getElementById('no-products');
+            
+            if (products.length === 0) {
+                container.classList.add('hidden');
+                noProducts.classList.remove('hidden');
+                return;
+            }
+            
+            noProducts.classList.add('hidden');
+            container.classList.remove('hidden');
+            container.innerHTML = '';
+            
+            products.forEach(product => {
+                const productElement = document.createElement('div');
+                productElement.className = 'bg-gray-50 dark:bg-gray-700 rounded-lg p-4 flex items-center space-x-4';
+                
+                productElement.innerHTML = `
+                    <img src="${product.image}" alt="${product.name}" class="w-16 h-16 object-cover rounded">
+                    <div class="flex-grow">
+                        <h3 class="font-semibold">${product.name}</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">${product.category}</p>
+                        <p class="text-primary font-bold">${product.price} MZN</p>
+                        ${product.popular ? '<span class="inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">Popular</span>' : ''}
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="toggleProductStatus('${product.id}', ${!product.active})" 
+                            class="px-3 py-1 rounded text-sm ${product.active ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-green-500 hover:bg-green-600 text-white'}">
+                            ${product.active ? 'Desativar' : 'Ativar'}
+                        </button>
+                        <button onclick="deleteProduct('${product.id}')" 
+                            class="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-sm">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                
+                container.appendChild(productElement);
+            });
+        }
+
+        // Toggle product status
+        async function toggleProductStatus(productId, newStatus) {
+            try {
+                const { error } = await supabaseClient
+                    .from('products')
+                    .update({ active: newStatus })
+                    .eq('id', productId);
+                
+                if (error) throw error;
+                
+                showSuccess(`Produto ${newStatus ? 'ativado' : 'desativado'} com sucesso!`);
+                loadProducts();
+                
+            } catch (error) {
+                console.error('Erro ao atualizar produto:', error);
+                showError('Erro ao atualizar produto');
+            }
+        }
+
+        // Delete product
+        async function deleteProduct(productId) {
+            if (!confirm('Tem certeza que deseja excluir este produto?')) return;
+            
+            try {
+                const { error } = await supabaseClient
+                    .from('products')
+                    .delete()
+                    .eq('id', productId);
+                
+                if (error) throw error;
+                
+                showSuccess('Produto excluído com sucesso!');
+                loadProducts();
+                
+            } catch (error) {
+                console.error('Erro ao excluir produto:', error);
+                showError('Erro ao excluir produto');
+            }
+        }
+
+        // Refresh products
+        document.getElementById('refresh-products').addEventListener('click', loadProducts);
+
+        // Helper functions
+        function showLoginLoading(show) {
+            const btn = document.getElementById('login-btn');
+            const text = document.getElementById('login-text');
+            const loading = document.getElementById('login-loading');
+            
+            if (show) {
+                text.classList.add('hidden');
+                loading.classList.remove('hidden');
+                btn.disabled = true;
+            } else {
+                text.classList.remove('hidden');
+                loading.classList.add('hidden');
+                btn.disabled = false;
+            }
+        }
+
+        function showSubmitLoading(show) {
+            const btn = document.getElementById('submit-btn');
+            const text = document.getElementById('submit-text');
+            const loading = document.getElementById('submit-loading');
+            
+            if (show) {
+                text.classList.add('hidden');
+                loading.classList.remove('hidden');
+                btn.disabled = true;
+            } else {
+                text.classList.remove('hidden');
+                loading.classList.add('hidden');
+                btn.disabled = false;
+            }
+        }
+
+        function showProductsLoading(show) {
+            const loading = document.getElementById('products-loading');
+            const list = document.getElementById('products-list');
+            const noProducts = document.getElementById('no-products');
+            
+            if (show) {
+                loading.classList.remove('hidden');
+                list.classList.add('hidden');
+                noProducts.classList.add('hidden');
+            } else {
+                loading.classList.add('hidden');
+            }
+        }
+
+        function showLoginError(message) {
+            const errorDiv = document.getElementById('login-error');
+            const errorText = document.getElementById('login-error-text');
+            errorText.textContent = message;
+            errorDiv.classList.remove('hidden');
+        }
+
+        function hideLoginError() {
+            document.getElementById('login-error').classList.add('hidden');
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('form-success');
+            const successText = document.getElementById('success-text');
+            successText.textContent = message;
+            successDiv.classList.remove('hidden');
+            
+            setTimeout(() => {
+                successDiv.classList.add('hidden');
+            }, 5000);
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('form-error');
+            const errorText = document.getElementById('error-text');
+            errorText.textContent = message;
+            errorDiv.classList.remove('hidden');
+            
+            setTimeout(() => {
+                errorDiv.classList.add('hidden');
+            }, 5000);
+        }
+
+        function hideMessages() {
+            document.getElementById('form-success').classList.add('hidden');
+            document.getElementById('form-error').classList.add('hidden');
+        }
+
+        function hideImagePreview() {
+            document.getElementById('image-preview-container').classList.add('hidden');
+        }
+
+        // Make functions global for onclick handlers
+        window.toggleProductStatus = toggleProductStatus;
+        window.deleteProduct = deleteProduct;
+    </script>
+</body>
+</html>
